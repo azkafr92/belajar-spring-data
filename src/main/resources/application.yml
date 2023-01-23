@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/belajar_spring_data"
+    username: postgres
+    password: 1234567890
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    generate-ddl: true
+    properties:
+      database: postgresql
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
