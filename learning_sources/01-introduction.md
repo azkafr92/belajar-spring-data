@@ -1,0 +1,389 @@
+# Introduction to Spring Data
+
+Spring Data dynamically creates a lot of classes in runtime to transform the interface into classes.
+Think of this approach as a proxy, using the interface instead of the classes that access the database.
+
+## Contents:
+- [Core Concept](#core-concept)
+- [Entities](#entities)
+- [Validating the Schema](#validating-the-schema)
+
+## Core Concept
+
+This section will be introducing core concepts of Spring Data, starting from:
+
+- [Object Mapping](#object-mapping)
+- [Repositories](#repositories)
+- [Automatic Custom Queries](#automatic-custom-queries)
+- [Manual Custom Queries](#manual-custom-queries)
+
+### Object Mapping
+
+[//]: # (TODO: penjelasan mengenai Object Mapping)
+
+### Repositories
+
+[//]: # (TODO: penjelasan mengenai Repositories)
+
+### Automatic Custom Queries
+
+*Example*
+
+```java
+public interface IUserRepository extends JpaRepository<User, String> {
+    Optional<User> findByEmailOrUsername();
+}
+```
+
+*Supported Query Method Subject Keywords*
+
+| Keyword                               | Description                                                                                                                      |
+|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| findBy...<br/>getBy...<br/>queryBy... | generally associated with a select query and return an element or set of elements that can be a Collection or Streamable subtype |
+| countBy                               | returns the number of elements that match the query                                                                              |
+| existBy                               | returns the number of elements that match the query                                                                              |
+| deleteBy                              | removes a set of elements that matches the query but does not return anything                                                    |
+
+*Supported Query Method Predicate Keywords*
+
+| Logical Keyword | Keyword Expression |
+|-----------------|--------------------|
+| AND             | And                |
+| OR              | Or                 |
+
+See link below to read more details:
+- [Supported Query Method Subject Keywords](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#appendix.query.method.predicate)
+- [Supported Query Method Predicate Keywords](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#appendix.query.method.predicate)
+
+### Manual Custom Queries
+
+Why need manual query? The answers could be:
+- Improve the performance of the query that Spring Data generates
+- You don’t need all the attributes of the table
+- The query is so complex that not exist keyword to express it
+
+*Example*
+
+```java
+public interface IUserRepository extends JpaRepository<User, String> {
+  @Query("SELECT email e, username un FROM User u WHERE e = :emailOrUsername OR un = :emailOrUsername")
+  List<GetUsersListResponse> findByEmailOrUsername(@Param("emailOrUsername") String emailOrUsername);
+}
+```
+
+Notice that manual query using **class name** instead of table name. From the example above, it is `...FROM User u...`.
+
+> Read
+> [Spring Data JPA Query](https://www.baeldung.com/spring-data-jpa-query),
+> [Spring Data Criteria Queries](https://www.baeldung.com/spring-data-criteria-queries)
+> for more detail explanation.
+
+## Entities
+
+This section will be explaining entity and annotations that build it.
+
+- [What is entity?](#what-is-entity)
+- [Declaring An Entity](#declaring-an-entity)
+- [Primary Key and Generator](#primary-key-and-generator)
+- [Column](#column)
+- [Implementing *One-to-Many* or *Many-to-One* Relation](#implementing-one-to-many-or-many-to-one-relation)
+- [Implementing *Many-to-Many* Relation](#implementing-many-to-many-relation)
+- [Implementing *One-to-One* Relation](#implementing-one-to-one-relation)
+- [Lazy and Eager Loading](#lazy-and-eager-loading)
+- [Types of Inherence](#types-of-inherence)
+- [Embeddable Class](#embeddable-class)
+- [Listening and Auditing Events](#listening-and-auditing-events)
+
+### What is entity?
+
+`Entity` is class whose purpose is to store/retrieve data to/from a data store.
+
+### Declaring an Entity
+
+JPA offers a simple way to translate a Java class into a table in the database using different types of annotations.
+The most important are `@Entity` and `@Table` because both help JPA understand all the attributes inside the class that
+need to be persisted in a table. Another thing to consider with entities is the override of the hashCode and equals
+methods to prevent any conflicts with the object’s content.
+
+> Define the `hashCode` and `equals` methods in all your entities
+> because it helps you to know if two instances of an entity are identical,
+> so refer to the same row of a table.
+> If you don’t declare all the comparisons between two or more instances of an entity,
+> compare the position in memory, which could be different.
+> Each instance could have the same information.
+
+`@Entity` is to make the class an entity that will be recognized by Spring JPA. [Documentation](https://jakarta.ee/specifications/persistence/3.1/apidocs/jakarta.persistence/jakarta/persistence/entity).
+
+`@Table` to override default table name. [Documentation](https://jakarta.ee/specifications/persistence/3.1/apidocs/jakarta.persistence/jakarta/persistence/table).
+
+An attribute with `@Id` annotation also needed to indicate the primary key or the main attribute for search.
+The classes must not be declared `final`. All the attributes need to have a `setter` and `getter`. Also, it is good practice to include overriding the `hashCode` and `equals` methods.
+
+JPA requires a no-argument constructor method that is either public or protected.
+We also have a constructor where the id field isn’t provided: a constructor designed for creating new entries in the database.
+When the id field is null, it tells JPA we want to create a new row in the table.
+The entities need to have a constructor without arguments that cannot be defined. JPA uses the default constructor that has all the Java classes, but if you create a constructor with an argument, you need to define it.
+
+Another useful annotations:
+- [Data annotation](https://projectlombok.org/features/Data)
+- [Builder annotation](https://projectlombok.org/features/Builder)
+- [Constructor annotation](https://projectlombok.org/features/constructor)
+
+### Primary Key and Generator
+
+`@Id` to set the attribute as primary key. JPA recognize this property as object's ID. [Documentation](https://jakarta.ee/specifications/persistence/3.1/jakarta-persistence-spec-3.1.html#a14827).
+
+> Sometimes, the best option is to use a `Long` key because you save a short number of rows in the database.
+> On the other hand, you can have an entity with a huge number of rows, so a good option could use a `UUID`.
+> Also, another reason to use a `UUID` is for security because if your application exposes an endpoint that gives all the
+> information of an entity using the `ID`, you can increment or decrement the `ID` and obtain the rows of a table
+> instead if you use a `UUID` reduces the risk that someone knows which are valid UUIDs that exist in the database.
+
+After primary key selected, the next thing to do is to define strategy to generate the value.
+`@GeneratedValue` to make id auto generated by whatever strategy we use. ID will be generated automatically.
+[Documentation](https://jakarta.ee/specifications/persistence/3.1/jakarta-persistence-spec-3.1.html#a14790).
+- `GenerationType.SEQUENCE` defines a numeric sequence in the database, so before persisting the information in the JPA table, call the sequence to obtain the next number to insert into the table. The main benefit of using the sequence is that you can use it in any column in multiple tables connected directly by one table, but it’s a common practice to use it for a specific purpose. Some databases that support the use of SEQUENCE are Oracle and PostgreSQL.
+- `GenerationType.IDENTITY` is a special behind-the-scenes column that does the same as the SEQUENCE check, which is the next available value. Some databases do not support the definition of a SEQUENCE, so they have an alternative special column like this that is an auto-incremented value.
+- `GenerationType.TABLE` is an alternative approach when you have a database that does not support using SEQUENCE; for example, MySQL 5.7 and lower do not have it. The goal is to have a table in your schema containing one row per entity that needs to generate an ID, which is the next available value.
+- GenerationType.AUTO is a strategy that considers the database you used and defines which is the best option to use. You can indicate this strategy in the annotation or without anything @GeneratedValue() because both cases indicate the same.
+
+Using `Spring Boot 3`, make sure `@Entity`, `@Table`, `@Id`, `@GeneratedValue` is imported from `jakarta.persistence`. See the documentation [here](https://jakarta.ee/specifications/persistence/3.1/apidocs/jakarta.persistence/jakarta/persistence/package-summary.html).
+
+| Annotation          | Imported from                      |
+|---------------------|------------------------------------|
+| @Data               | lombok.Data                        |
+| @Builder            | lombok.Builder                     |
+| @NoArgsConstructor  | lombok.NoArgsConstructor           |
+| @AllArgsConstructor | lombok.AllArgsConstructor          |
+| @Entity             | jakarta.persistence.Entity         |
+| @Table              | jakarta.persistence.Table          |
+| @Id                 | jakarta.persistence.Id             |
+| @GeneratedValue     | jakarta.persistence.GeneratedValue |
+
+### Column
+
+After you declare the table’s name in your class, the next step is to declare the name and the type of each table column that matches each class attribute.
+JPA offers the `@Column` annotation, in which you can only use one type over each class attribute.
+
+> Is it necessary to include the `@Column` annotation in all the attributes?
+>
+> The answer is no because JPA supposes that the name of the attribute and the column in the database are the same.
+> 
+> A good practice is defined in all cases, including the annotation and defining the name if it allows null values,
+> and all the possible things you can use to validate the entity before persisting it (name, length, maximum, and
+> minimum, whether it supports null values or not).
+>
+> Also, consider adding the String columns to the correct length of the attributes.
+Some vendors of relational databases differentiate between words in lower cases and uppercases, so a good practice is to try to indicate the name of the columns in all cases.
+
+We are also using `@Enumerated` annotation to define column.
+The enumeration could be saved as many types and mapped directly to an enum in the Java class.
+The explanation is that you can save the enumeration as a string or an ordinal type like a number and delegate to the framework the responsibility to transform a column’s information into a value of the enumeration.
+
+#### Equivalence Between the SQL Type and Java Type
+
+| ANSI SQL Type         | Java Type                                                                                                                             |
+|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| BIGINT                | long<br>java.lang.Long                                                                                                                |
+| BIT                   | boolean<br>java.lang.Boolean                                                                                                          |
+| CHAR                  | cha<br>java.lang.Character                                                                                                            |
+| CHAR (e.g. 'N', 'n'   | boolean<br>java.lang.Boolean                                                                                                          |
+| DOUBLE                | double<br>java.lang.Double                                                                                                            |
+| FLOAT                 | float<br>java.lang.Float                                                                                                              |
+| INTEGER               | int<br>java.lang.Integer                                                                                                              |
+| INTEGER (e.g. 0 or 1) | boolean<br>java.lang.Boolean                                                                                                          |
+| SMALLINT              | short<br>java.lang.Short                                                                                                              |
+| TINYINT               | byte<br>java.lang.Byte                                                                                                                |
+| CLOB                  | java.lang.String                                                                                                                      |
+| NCLOB                 | java.lang.String                                                                                                                      |
+| CHAR                  | java.lang.String                                                                                                                      |
+| VARCHAR               | java.lang.String                                                                                                                      |
+| NVARCHAR              | java.lang.String                                                                                                                      |
+| LONGVARCHAR           | java.lang.String                                                                                                                      |
+| LONGNVARCHAR          | java.lang.String                                                                                                                      |
+| DATE                  | java.util.Date<br>java.util.Calendar<br>java.time.LocalDate                                                                           |
+| TIME                  | java.util.Date<br>java.sql.Time<br>java.time.OffsetTime<br>java.time.LocalTime                                                        |
+| TIMESTAMP             | java.util.Date<br>java.sql.Timestamp<br>java.util.Calendar<br>java.time.Instant<br>java.time.LocalDateTime<br>java.time.ZonedDateTime |
+| BIGINT                | java.time.Duration                                                                                                                    |
+| VARBINARY             | byte[ ], java.lang.Byte[ ], java.io.Serializable                                                                                      |
+| BLOB                  | java.sql.Blob                                                                                                                         |
+| CLOB                  | java.sql.Clob                                                                                                                         |
+| NCLOB                 | java.sql.Clob                                                                                                                         |
+| LONGVARBINARY         | byte[ ], java.lang.Byte[ ]                                                                                                            | 
+
+### Implementing *One-to-Many* or *Many-to-One* Relation
+
+> https://www.baeldung.com/hibernate-one-to-many
+
+[//]: # (TODO: penjelasan relasi One to Many)
+
+### Implementing *Many-to-Many* Relation
+
+> https://www.baeldung.com/hibernate-many-to-many
+
+[//]: # (TODO: penjelasan relasi Many to Many)
+
+### Implementing *One-to-One* Relation
+
+> https://www.baeldung.com/jpa-one-to-one#spk-strategy
+
+[//]: # (TODO: penjelasan relasi One to One)
+
+> The use of the properties updatable and insertable in the `@JoinColumn` annotation with false indicates that it is not the entity’s responsibility to modify the connected entities.
+
+### Lazy and Eager Loading
+
+At default, when you add the relationship between two or more entities,
+the endpoint response gives all the information that could not be necessary in all cases.
+JPA offers a mechanism to reduce the number of data in memory until you need it.
+The way to do it is to add a property fetch in the annotation that indicates the relationship between both entities.
+The property has two potential values.
+
+- `FetchType.LAZY`: indicates the implementation of JPA that is not necessary to obtain the information of the
+relationship until someone invokes the attribute’s get method. This approach spends less memory in the application
+and gives you a faster load of information; in the other hand, if you need to obtain always information about the
+relationship, the cost of executing the operation increases and takes more time.
+
+- `FetchType.EAGER`: indicates the JPA implementation that must obtain all the other entity’s information
+when executing the query. With this approach, you reduce the time to initialization because when you have one entity in
+memory, you have all the information; in the other hand, the query execution could take more time and negatively impact
+the application’s performance.
+
+### Types of Inherence
+
+`@MappedSuperclass` annotation indicates that the class is not a final entity, so it does not exist in the database.
+Instead, this class is part of another class that inherits it.
+
+```java
+@MappedSuperclass
+public abstract class Base implements Serializable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+    public Base(){}
+    public Base(Long id) {
+        this.id = id;
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+}
+```
+
+### Embeddable Class
+
+With embeddable class, you can include a class in another, like an attribute but appear as part of the same table in the database.
+
+```java
+@Embeddable
+public class Audit implements Serializable {
+    @Column(name = "created_on", nullable = false)
+    private LocalDateTime createdOn;
+    @Column(name = "updated_on", nullable = true) //Need to be null because the first time this attribute not have a value, only with the modifications have a value.
+    private LocalDateTime updatedOn;
+    // Attributes, constructors, setters, and getters for all the attributes
+    // Override the hashcode and equals
+}
+```
+```java
+@Entity
+@Table(name = "users")
+public class User {
+    @Embedded
+    private Audit audit;
+    // Attributes, constructors, setters, and getters for all the attributes
+   // Override the hashcode and equals
+}
+```
+
+### Listening and Auditing Events
+
+In the last section, you added attributes to the entities to audit the rows in the database.
+But you need to manually set the value of these attributes, which is not the best approach and implies that you repeat
+the logic in all the services .
+
+JPA offers a set of annotations related to the events to check what happens in the life cycle of an entity and
+introduce logs or modifications.
+
+| Events                                                            | Description                                                                                                                                   |
+|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| @jakarta.persistence.PrePersist, @jakarta.persistence.PostPersist | The event calls it after or before the entity has persisted.                                                                                  |
+| @jakarta.persistence.PreUpdate, @jakarta.persistence.PostUpdate   | The event calls it after or before the entity has been updated.                                                                               |
+| @ jakarta.persistence.PreRemove, @jakarta.persistence.PostRemove  | The event calls it after or before the entity has been removed.                                                                               |
+| @ jakarta.persistence.PostLoad                                    | The event calls it after the entity has been loaded successfully.                                                                             |
+| @CreatedDate, @LastModifiedDate                                   | These annotations are equivalent to @PreUpdate, @PrePersist                                                                                   |
+| @CreatedBy, @LastModifiedBy                                       | These annotations are responsible for doing the modifications in the entity. In most cases, the annotations are used over a String attribute. |
+
+```java
+public class User {
+    // omitted code
+    
+    @Embedded
+    private Audit audit;
+
+    @PrePersist
+    public void fillCreatedOn() {
+        audit.setCreatedOn(LocalDateTime.now());
+    }
+
+    @PreUpdate
+    public void fillUpdatedOn() {
+        audit.setUpdatedOn(LocalDateTime.now());
+    }
+
+}
+```
+
+You can also externalize all the logic of the persistence life cycle in one class and annotate the classes with
+`@EntityListeners(MyAuditListener.class)`, and include the `@EnableJpaAuditing` annotation in your main class.
+
+## Validating the Schema
+
+A good practice is to use the validation in the first layer, a microservice that uses Spring Boot as the controller
+but is not exclusively. You can use it in another layer, like the service or repositories, if you have an implementation.
+
+Add `spring-boot-starter-validation` to `pom.xml`.
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+```java
+import jakarta.validation.Validator;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class UserService implements IUserService {
+    // omitted code
+    @Autowired
+    Validator validator;
+    
+    public User registerUser(UserDTO userDTO) {
+        // omitted code
+        Set<ConstraintViolation<Currency>> violations = validator.validate(entity);
+        if(!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
+        // omitted code
+    }
+}
+```
+
+*Annotations to Validate Attribute*
+
+| Name                          | Description                                                         |
+|-------------------------------|---------------------------------------------------------------------|
+| @NotBlank                     | Validates that the string is not null or with whitespaces           |
+| @NotNull                      | Checks if the property is not null                                  |
+| @Min                          | Checks if the number is greater or equal to the value               |
+| @Max                          | Checks if the number is smaller or equal to the value               |
+| @AssertTrue                   | Validates if the value of the attribute is true or not              |
+| @Past and @PastOrPresent      | Validate if the date is in the past or not the present              |
+| @Future and @FutureOrPresent  | Validate if the date is in the future, including or not the present |
+| @Positive and @PositiveOrZero | Validate if the number is positive, including or not the zero       |
+| @Negative and @NegativeOrZero | Validate if the number is negative, including or not the zero       |
