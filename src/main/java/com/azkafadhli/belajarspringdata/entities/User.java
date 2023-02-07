@@ -54,9 +54,6 @@ public class User {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     private List<Address> addresses;
 
-    @OneToOne
-    private UserIdentity identity;
-
     @Enumerated(EnumType.STRING)
     private Set<Authority> authorities;
 

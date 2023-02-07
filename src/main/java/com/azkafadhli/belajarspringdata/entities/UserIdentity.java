@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Date;
+import java.util.UUID;
 
 @Entity
 @Table(name = "user_identities")
@@ -18,7 +19,7 @@ public class UserIdentity {
 
     @Id
     @Column(name = "user_id")
-    private String id;
+    private UUID id;
 
     @OneToOne
     @MapsId
