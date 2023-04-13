@@ -3,8 +3,6 @@
 File ini berisi langkah-langkah praktis untuk memulai dari project dari nol.
 Penjelasan mengenai tutorial ini bisa dilihat di dalam folder `learning_sources`.
 
-[//]: # (TODO: pisahkan penjelasan detail ke file lain)
-
 ## Daftar Isi
  
 - [Project Setup](#project-setup)
@@ -73,11 +71,11 @@ Pada bagian selanjutnya, kita akan membuat entity.
 
 ## ERD
 
-[//]: # (TODO: put entity relation diagram here, `user` and `tag` has many-to-many relation_)
+![erd](learning_sources/erd.png)
 
 ## Entities
 
-Buat sebuah package bernama `entities`. Di dalamnya buat tiga kelas baru bernama `User`, `Address`, dan `Tag`.
+Buat sebuah package bernama `entities`. Di dalamnya buat lima kelas baru bernama `User`, `Address`, `Tag`, `Audit`, `UserIdentity`, dan enum `Authority`. Penjelasan mengenai pembuatan entity bisa dilihat di bagian [learning_sources/02-entities.md](learning_sources/02-entities.md).
 
 `User`
 ```java
@@ -85,7 +83,6 @@ Buat sebuah package bernama `entities`. Di dalamnya buat tiga kelas baru bernama
 @Table(name = "users")
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 @Data
 public class User {
 
@@ -100,12 +97,15 @@ public class User {
     // email & name will be mapped to column with same name
     // if no name set in annotation @Column
     @Column(unique = true, nullable = false)
+    @NotBlank(message = "Email is mandatory")
     private String email;
 
     @Column(unique = true, nullable = false)
+    @NotBlank(message = "Username is mandatory")
     private String username;
 
     @Column(nullable = false)
+    @NotBlank(message = "Password is mandatory")
     private String password;
 
     @Column(columnDefinition = "boolean default false")
@@ -119,8 +119,28 @@ public class User {
     )
     private Set<Tag> tags;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "users")
-    private List<Address> address;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+    private List<Address> addresses;
+
+    @Enumerated(EnumType.STRING)
+    private Set<Authority> authorities;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    @PrimaryKeyJoinColumn
+    private UserIdentity userIdentity;
+
+    @Embedded
+    private Audit audit;
+
+    @PrePersist
+    public void fillCreatedOn() {
+        audit.setCreatedOn(LocalDateTime.now());
+    }
+
+    @PreUpdate
+    public void fillUpdatedOn() {
+        audit.setUpdatedOn(LocalDateTime.now());
+    }
 
 }
 ```
@@ -156,6 +176,7 @@ public class Address {
 
 `Tag`
 ```java
+@Entity
 @Table(name = "tags")
 @Builder
 @NoArgsConstructor
@@ -173,40 +194,97 @@ public class Tag {
     @JsonIgnore
     private List<User> users;
 
-    protected Tag() {
-    }
+}
+```
 
-    public Tag(String name) {
-        this.name = name;
-    }
+[//]: # (TODO: enable soft delete in `Tag` entity)
 
+`Audit`
+
+```java
+@Embeddable
+@Getter
+@Setter
+public class Audit {
+    
+    @Column(name = "created_on", nullable = false)
+    private LocalDateTime createdOn;
+    
+    @Column(name = "updated_on")
+    private LocalDateTime updatedOn;
+    
+}
+```
+
+`UserIdentity`
+
+```java
+@Entity
+@Table(name = "user_identities")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+public class UserIdentity {
+
+    @Id
+    @Column(name = "user_id")
+    private UUID id;
+
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(length = 16)
+    private String nik;
+
+    private Date dob;
+
+}
+```
+
+`Authority`
+
+```java
+public enum Authority {
+    READ, WRITE, UPDATE, DELETE
 }
 ```
 
 Setelah entity dibuat, restart aplikasi dan lihatlah perubahan di database. Jika tidak ada error, table secara otomatis terbuat.
 
-[//]: # (TODO: enable soft delete in `Tag` entity)
 
 ## Repositories
 
 Berikutnya, kita membuat sebuah interface repository untuk mengakses tabel dan melakukan query.
-Buatlah sebuah package bernama `repositories`, lalu di dalamnya buat interface `IUserRepository`, `IAddressRepository`, dan `ITagRepository`.
+Buatlah sebuah package bernama `repositories`, lalu di dalamnya buat interface `IUserRepository`, `IAddressRepository`, `ITagRepository`, dan `IUserIdentity`.
 
 `IUserRepository`
+
 ```java
-public interface IUserRepository extends JpaRepository<User, String> {
+public interface IUserRepository extends JpaRepository<User, UUID> {
 }
 ```
 
 `IAddressRepository`
+
 ```java
 public interface IAddressRepository extends JpaRepository<Address, Long> {
 }
 ```
 
 `ITagRepository`
+
 ```java
 public interface ITagRepository extends JpaRepository<Tag, Long> {
+}
+```
+
+`IUserIdentity`
+
+```java
+public interface IUserIdentity extends JpaRepository<UserIdentity, UUID> {
 }
 ```
 

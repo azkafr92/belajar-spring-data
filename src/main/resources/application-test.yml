@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    username: postgres
+    password: 1234567890
+    url: "jdbc:postgresql://localhost:5432/test_belajar_spring_data"

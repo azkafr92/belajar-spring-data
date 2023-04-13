@@ -1,8 +1,5 @@
 spring:
   datasource:
-    url: "jdbc:postgresql://localhost:5432/belajar_spring_data"
-    username: postgres
-    password: 1234567890
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -12,3 +9,9 @@ spring:
     properties:
       database: postgresql
       database-platform: org.hibernate.dialect.PostgreSQLDialect
+  profiles:
+    active: "dev"
+
+server:
+  error:
+    include-message: always

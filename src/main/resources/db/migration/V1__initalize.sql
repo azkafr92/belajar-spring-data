@@ -17,6 +17,8 @@ create table user_identities (
   user_id uuid not null,
   dob date,
   nik varchar(16),
+  first_name varchar(255),
+  last_name varchar(255),
   primary key (user_id)
 );
 
@@ -32,9 +34,7 @@ create table users (
   updated_on timestamp(6),
   authorities varchar(255) array,
   email varchar(255) not null,
-  first_name varchar(255),
   is_enabled boolean default false,
-  last_name varchar(255),
   password varchar(255) not null,
   username varchar(255) not null,
   primary key (id)

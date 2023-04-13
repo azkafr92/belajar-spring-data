@@ -29,6 +29,10 @@ public class UserIdentity {
     @Column(length = 16)
     private String nik;
 
+    private String firstName;
+
+    private String lastName;
+
     private Date dob;
 
 }
