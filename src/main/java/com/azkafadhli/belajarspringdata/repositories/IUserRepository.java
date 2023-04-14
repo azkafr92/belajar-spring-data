@@ -15,6 +15,8 @@ public interface IUserRepository extends JpaRepository<User, String> {
     @Query("SELECT email, username FROM User u WHERE u.email = :emailOrUsername OR u.username = :emailOrUsername")
     List<User> findByEmailOrUsername(@Param("emailOrUsername") String emailOrUsername, Pageable pageable);
 
+    boolean existsByEmailOrUsername(String email, String username);
+
     Optional<User> findById(UUID id);
 
 }

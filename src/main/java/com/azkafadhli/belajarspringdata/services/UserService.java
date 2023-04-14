@@ -13,10 +13,8 @@ import com.azkafadhli.belajarspringdata.repositories.IUserRepository;
 import com.azkafadhli.belajarspringdata.utils.Sorter;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +48,10 @@ public class UserService implements IUserService {
 
     @Override
     public void addUser(RegisterUserDTO userRequest) {
+        if (userRepository.existsByEmailOrUsername(userRequest.getEmail(), userRequest.getUsername())) {
+            throw new DataIntegrityViolationException("email or username already used");
+        }
+
         User user = modelMapper.map(userRequest, User.class);
         user.setAudit(new Audit());
         userRepository.save(user);

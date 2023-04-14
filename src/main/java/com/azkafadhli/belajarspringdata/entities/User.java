@@ -1,7 +1,6 @@
 package com.azkafadhli.belajarspringdata.entities;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,15 +25,12 @@ public class User {
     private UUID id;
 
     @Column(unique = true, nullable = false)
-    @NotBlank(message = "Email is mandatory")
     private String email;
 
     @Column(unique = true, nullable = false, length = 32)
-    @NotBlank(message = "Username is mandatory")
     private String username;
 
     @Column(nullable = false)
-    @NotBlank(message = "Password is mandatory")
     private String password;
 
     @Column(columnDefinition = "boolean default false", nullable = false)

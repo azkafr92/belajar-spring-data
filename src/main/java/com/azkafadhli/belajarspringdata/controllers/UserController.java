@@ -7,11 +7,15 @@ import com.azkafadhli.belajarspringdata.dtos.responses.UserDetailsDTO;
 import com.azkafadhli.belajarspringdata.dtos.responses.UserListDTO;
 import com.azkafadhli.belajarspringdata.services.IUserService;
 import com.azkafadhli.belajarspringdata.utils.PageAndSortMapper;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -21,9 +25,15 @@ public class UserController {
     @Autowired
     IUserService userService;
 
+    @Autowired
+    Validator validator;
+
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterUserDTO userRequest) {
-        // TODO: check username & email, no user with same username or email
+        Set<ConstraintViolation<RegisterUserDTO>> violations = validator.validate((userRequest));
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
 
         userService.addUser(userRequest);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
