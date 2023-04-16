@@ -13,7 +13,8 @@ public class PageAndSortMapper {
         }
         if (Validator.isInteger(inputLimit)) {
             int limitNumber = Integer.parseInt(inputLimit);
-            output.setLimit(Math.max(limitNumber, Integer.parseInt(Constant.DEFAULT_PAGE_SIZE)));
+
+            output.setLimit(limitNumber < 1 ? Integer.parseInt(Constant.DEFAULT_PAGE_SIZE) : limitNumber);
         } else {
             output.setLimit(Integer.parseInt(Constant.DEFAULT_PAGE_SIZE));
         }

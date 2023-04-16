@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Transactional
+@Transactional(readOnly = true)
 @Service
 public class UserService implements IUserService {
 
@@ -47,6 +47,7 @@ public class UserService implements IUserService {
     }
 
     @Override
+    @Transactional(readOnly = false)
     public void addUser(RegisterUserDTO userRequest) {
         if (userRepository.existsByEmailOrUsername(userRequest.getEmail(), userRequest.getUsername())) {
             throw new DataIntegrityViolationException("email or username already used");
